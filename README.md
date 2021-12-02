@@ -17,13 +17,15 @@ import {
 
 ```typescript
 serve(8000, {
+  // You can serve plain text
   "/hello": () => new Response("Hello World!"),
+  // json
   "/json": () => json({ message: "hello world" }),
-  // You can serve a single file.
+  // a single file.
   "/": serveStatic("public/index.html"),
-  // Or a directory of files.
+  // a directory of files.
   "/public/:filename+": serveStatic("public"),
-  // Or a remote resource.
+  // or a remote resource.
   "/todos": serveStatic("https://jsonplaceholder.typicode.com/todos/1", false),
 });
 ```
