@@ -37,7 +37,7 @@ export function serve(port: number, routes: Routes): void {
 
 function handleRequests(routes: Routes) {
     return async (request: Request) => {
-        const {search, pathname} = new URL(request.url);
+        const {pathname} = new URL(request.url);
 
         let response: Response | undefined;
 
@@ -64,7 +64,7 @@ function handleRequests(routes: Routes) {
 
             // method path+params timeTaken status
             console.log(
-                `${ request.method } ${ pathname + search } ${ Date.now() - startTime }ms ${ response.status }`,
+                `${ request.method } ${ pathname } ${ Date.now() - startTime }ms ${ response.status }`,
             );
 
             return response;
@@ -86,20 +86,22 @@ function handleRequests(routes: Routes) {
  *     // Or a directory of files.
  *     "/public/:filename+": serveStatic("public"),
  *     // Or a remote resource.
- *     "/todos": serveStatic("https://google.com", false),
+ *     "/todos/:id": serveStatic("/todos/:id", "https://jsonplaceholder.typicode.com"),,
  * });
  * ```
  */
 export function serveStatic(
     path: string,
-    local = true,
+    baseURL: string,
 ): Handler {
     return async (
-        _request: Request,
+        request: Request,
         params: PathParams,
     ): Promise<Response> => {
-        if (!local) {
-            return fetch(path);
+        if (baseURL) {
+            const {pathname} = new URL(request.url);
+            const url = new URL(pathname, baseURL);
+            return fetch(url);
         } else {
             const filename = params?.filename;
             let filePath = path;
