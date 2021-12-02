@@ -2,13 +2,15 @@
 
 A lightweight tool for serving http built on top of the Deno standard library.
 
+This project takes much inspiration from the [sift](https://github.com/satyarohith/sift) Deno project so thank you [@satyarohith](https://github.com/satyarohith) for that work.
+
 ## 📦 Importing
 
 ```typescript
 import {
-  json,
   serve,
   serveStatic,
+  json
 } from "https://raw.githubusercontent.com/wkirk01/serve/master/mod.ts";
 ```
 
