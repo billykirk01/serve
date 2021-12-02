@@ -1,4 +1,4 @@
-# ✨ serve
+# ✨ verse
 
 A lightweight tool for serving http built on top of the Deno standard library.
 
@@ -11,7 +11,7 @@ import {
   serve,
   serveStatic,
   json
-} from "https://raw.githubusercontent.com/billykirk01/serve/master/mod.ts";
+} from "https://deno.land/x/verse/mod.ts";
 ```
 
 ## 📖 Example Usage
