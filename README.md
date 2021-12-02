@@ -1,7 +1,6 @@
 # ✨ serve
 
-A lightweight tool for creating github flavored HTML documents from markdown.
-Built using Deno.
+A lightweight tool for serving http built on top of the Deno standard library.
 
 ## 📦 Importing
 
