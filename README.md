@@ -11,7 +11,7 @@ import {
   serve,
   serveStatic,
   json
-} from "https://raw.githubusercontent.com/wkirk01/serve/master/mod.ts";
+} from "https://raw.githubusercontent.com/billykirk01/serve/master/mod.ts";
 ```
 
 ## 📖 Example Usage
