@@ -2,16 +2,14 @@
 
 A lightweight tool for serving http built on top of the Deno standard library.
 
-This project takes much inspiration from the [sift](https://github.com/satyarohith/sift) Deno project so thank you [@satyarohith](https://github.com/satyarohith) for that work.
+This project takes much inspiration from the
+[sift](https://github.com/satyarohith/sift) Deno project so thank you
+[@satyarohith](https://github.com/satyarohith) for that work.
 
 ## 📦 Importing
 
 ```typescript
-import {
-  serve,
-  serveStatic,
-  json
-} from "https://deno.land/x/verse/mod.ts";
+import { json, serve, serveStatic } from "https://deno.land/x/verse/mod.ts";
 ```
 
 ## 📖 Example Usage
@@ -31,6 +29,9 @@ serve(8000, {
   "/public/:filename+": serveStatic("public"),
 
   // or a remote resource
-  "/todos": serveStatic("https://jsonplaceholder.typicode.com/todos/1", false),
+  "/todos/:id": serveStatic(
+    "/todos/:id",
+    "https://jsonplaceholder.typicode.com",
+  ),
 });
 ```
