@@ -23,15 +23,12 @@ serve(8000, {
   "/json": () => json({ message: "hello world" }),
 
   // a single file
-  "/": serveStatic("public/index.html"),
+  "/": serveStatic("./public/index.html"),
 
-  // a directory of files
-  "/public/:filename+": serveStatic("public"),
+  // a directory of files (must include :filename? at end of path)
+  "/public/:filename?": serveStatic("./public"),
 
   // or a remote resource
-  "/todos/:id": serveStatic(
-    "/todos/:id",
-    "https://jsonplaceholder.typicode.com",
-  ),
+  "/todos/:id": serveRemote("https://jsonplaceholder.typicode.com/todos/:id"),
 });
 ```

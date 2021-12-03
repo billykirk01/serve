@@ -1,14 +1,18 @@
 import {
+    serve as _serve,
     Status,
     STATUS_TEXT,
-} from "https://deno.land/std/http/http_status.ts";
+} from "https://deno.land/std/http/mod.ts";
 
-import {
-    contentType as getContentType,
-    lookup,
-} from "https://deno.land/x/media_types/mod.ts";
+import * as _path from "https://deno.land/std/path/mod.ts";
 
-import {serve as _serve} from "https://deno.land/std/http/server.ts";
+import {walk} from "https://deno.land/std/fs/mod.ts";
+
+import handlebars from 'https://cdn.skypack.dev/handlebars';
+
+import {lookup} from "https://deno.land/x/media_types/mod.ts";
+
+import {prettyBytes} from "https://deno.land/x/pretty_bytes/mod.ts";
 
 type PathParams = Record<string, string> | undefined;
 
@@ -16,7 +20,7 @@ interface Routes {
     [path: string]: Handler;
 }
 
-export type Handler = (
+type Handler = (
     request: Request,
     params: PathParams,
 ) => Response | Promise<Response>;
@@ -25,9 +29,22 @@ export type Handler = (
  *
  * @example
  * ```ts
- * serve({
- *  "/": (request: Request) => new Response("Hello World!"),
- * })
+ * serve(8000, {
+ *     // you can serve plain text
+ *     "/hello": () => new Response("Hello World!"),
+ * 
+ *     // json
+ *     "/json": () => json({message: "hello world"}),
+ * 
+ *     // a single file
+ *     "/": serveStatic("./public/index.html"),
+ * 
+ *     // a directory of files
+ *     "/public/:filename?": serveStatic("./public"),
+ * 
+ *     // or a remote resource
+ *     "/todos/:id": serveRemote("https://jsonplaceholder.typicode.com/todos/:id"),
+ * });
  * ```
  */
 export function serve(port: number, routes: Routes): void {
@@ -47,82 +64,118 @@ function handleRequests(routes: Routes) {
                 const pattern = new URLPattern({pathname: route});
                 if (pattern.test({pathname})) {
                     const params = pattern.exec({pathname})?.pathname.groups;
-                    try {
-                        response = await routes[route](request, params);
-                    } catch (error) {
-                        console.error("Error serving request:", error);
-                        response = json({error: error.message}, {status: 500});
-                    }
+                    response = await routes[route](request, params);
                     break;
+                } else {
+                    json({error: "Page not found"}, {status: Status.NotFound});
                 }
             }
 
-            // return not found page if no handler is found.
-            if (response === undefined) {
-                response = json({error: "Page not found"}, {status: 404});
-            }
-
-            // method path+params timeTaken status
             console.log(
-                `${ request.method } ${ pathname } ${ Date.now() - startTime }ms ${ response.status }`,
+                `${ request.method } ${ pathname } ${ Date.now() - startTime }ms ${ response?.status || Status.InternalServerError }`,
             );
 
-            return response;
+            return response || json({error: "Error serving request"}, {status: Status.InternalServerError});
         } catch (error) {
             console.error("Error serving request:", error);
-            return json({error: error.message}, {status: 500});
+            return json({error: error}, {status: Status.InternalServerError});
         }
     };
 
 }
 
-/** Serve static files hosted on the internet or relative to your source code.
+/** Serve static files or a directory.
  *
  * @example
  * ```
  * serve(8000, {
- *     // You can serve a single file.
- *     "/": serveStatic("public/index.html"),
- *     // Or a directory of files.
- *     "/public/:filename+": serveStatic("public"),
- *     // Or a remote resource.
- *     "/todos/:id": serveStatic("/todos/:id", "https://jsonplaceholder.typicode.com"),,
+ *     // a single file
+ *     "/": serveStatic("./public/index.html"),
+ * 
+ *     // a directory of files
+ *     "/public/:filename?": serveStatic("./public"),
  * });
  * ```
  */
 export function serveStatic(
     path: string,
-    baseURL: string,
 ): Handler {
     return async (
         request: Request,
         params: PathParams,
     ): Promise<Response> => {
-        if (baseURL) {
-            const {pathname} = new URL(request.url);
-            const url = new URL(pathname, baseURL);
-            return fetch(url);
-        } else {
-            const filename = params?.filename;
-            let filePath = path;
-            if (filename) {
-                filePath = path.endsWith("/")
-                    ? path + filename
-                    : path + "/" + filename;
+        try {
+            const fullPath = (params && params.filename) ? _path.join(path, params.filename) : path;
+            const fileInfo = await Deno.stat(fullPath);
+            if (fileInfo.isDirectory) {
+                return serveDir(request, path);
+            } else {
+                const body = await Deno.readFile(fullPath);
+                const response = new Response(body);
+                const contentType = lookup(path);
+                if (contentType) {
+                    response.headers.set("content-type", contentType);
+                }
+                return response;
             }
-            const fileUrl = new URL(filePath, import.meta.url);
-            const body = await Deno.readFile(fileUrl);
-            const response = new Response(body);
-            const contentType = getContentType(String(lookup(filePath)));
-            if (contentType) {
-                response.headers.set("content-type", contentType);
-            }
-
-            if (response.status == 404) {
-                return json({error: "Page not found"}, {status: 404});
-            }
-            return response;
+        } catch (error) {
+            return json({error: error}, {status: Status.InternalServerError});
         }
+    };
+}
+
+interface DirectoryEntry {
+    path: URL;
+    name: string;
+    size: string;
+    dateModified: string;
+}
+
+async function serveDir(request: Request, path: string) {
+    const directoryData: DirectoryEntry[] = [];
+
+    for await (const entry of walk(path, {includeDirs: false})) {
+        const fileInfo = await Deno.stat(entry.path);
+        const {size, mtime} = fileInfo;
+        directoryData.push({
+            path: new URL(entry.path, request.url),
+            name: entry.name,
+            size: prettyBytes(size),
+            dateModified: `${ mtime }`
+        });
+    }
+
+    const template = handlebars.compile(await Deno.readTextFile("./dirlisting.html"));
+
+    const rendered = template({
+        directory: path,
+        files: directoryData,
+    });
+
+    const response = new Response(rendered);
+    response.headers.set("content-type", "text/html; charset=utf-8");
+    return response;
+}
+
+/** Serve a remote resource.
+ *
+ * @example
+ * ```
+ * serve(8000, {
+ *   "/todos/:id": serveRemote("https://jsonplaceholder.typicode.com/todos/:id"),
+ * });
+ * ```
+ */
+export function serveRemote(
+    remoteURL: string,
+): Handler {
+    return (
+        request: Request,
+        _params: PathParams,
+    ): Promise<Response> => {
+        const {pathname} = new URL(request.url);
+        const url = new URL(pathname, remoteURL);
+        return fetch(url);
     };
 }
 
@@ -130,13 +183,10 @@ export function serveStatic(
  * a Response with `application / json` as the `content - type`.
  *
  * @example
- * ```js
-    * import {serve, json} from "https://deno.land/x/sift/mod.ts"
- *
  * serve({
         *  "/": () => json({message: "hello world"}),
  * })
-    * ```
+ * ```
  */
 export function json(
     jsobj: Parameters<typeof JSON.stringify>[0],
