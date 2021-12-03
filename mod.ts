@@ -3,15 +3,10 @@ import {
     Status,
     STATUS_TEXT,
 } from "https://deno.land/std/http/mod.ts";
-
 import * as _path from "https://deno.land/std/path/mod.ts";
-
 import {walk} from "https://deno.land/std/fs/mod.ts";
-
 import handlebars from 'https://cdn.skypack.dev/handlebars';
-
 import {lookup} from "https://deno.land/x/media_types/mod.ts";
-
 import {prettyBytes} from "https://deno.land/x/pretty_bytes/mod.ts";
 
 type PathParams = Record<string, string> | undefined;
@@ -74,10 +69,10 @@ function handleRequests(routes: Routes) {
                 `${ request.method } ${ pathname } ${ Date.now() - startTime }ms ${ response?.status || Status.InternalServerError }`,
             );
 
-            return response || json({error: "Page Not Found"}, {status: Status.NotFound});
+            return response || json({error: STATUS_TEXT.get(Status.NotFound)}, {status: Status.NotFound});
         } catch (error) {
             console.error("Error serving request:", error);
-            return json({error: error}, {status: Status.InternalServerError});
+            return json({error: STATUS_TEXT.get(Status.InternalServerError)}, {status: Status.InternalServerError});
         }
     };
 
@@ -119,9 +114,9 @@ export function serveStatic(
             }
         } catch (error) {
             if (error?.name == "NotFound") {
-                return json({error: "Resource not found"}, {status: Status.NotFound});
+                return json({error: STATUS_TEXT.get(Status.NotFound)}, {status: Status.NotFound});
             }
-            return json({error: error}, {status: Status.InternalServerError});
+            return json({error: STATUS_TEXT.get(Status.InternalServerError)}, {status: Status.InternalServerError});
         }
     };
 }
