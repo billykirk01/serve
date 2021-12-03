@@ -54,7 +54,8 @@ export function serve(port: number, routes: Routes): void {
 
 function handleRequests(routes: Routes) {
     return async (request: Request) => {
-        const {pathname} = new URL(request.url);
+        let {pathname} = new URL(request.url);
+        if (pathname.endsWith("/")) pathname = pathname.slice(0, -1);
 
         let response: Response | undefined;
 
@@ -66,8 +67,6 @@ function handleRequests(routes: Routes) {
                     const params = pattern.exec({pathname})?.pathname.groups;
                     response = await routes[route](request, params);
                     break;
-                } else {
-                    json({error: "Page not found"}, {status: Status.NotFound});
                 }
             }
 
@@ -75,7 +74,7 @@ function handleRequests(routes: Routes) {
                 `${ request.method } ${ pathname } ${ Date.now() - startTime }ms ${ response?.status || Status.InternalServerError }`,
             );
 
-            return response || json({error: "Error serving request"}, {status: Status.InternalServerError});
+            return response || json({error: "Page Not Found"}, {status: Status.NotFound});
         } catch (error) {
             console.error("Error serving request:", error);
             return json({error: error}, {status: Status.InternalServerError});
@@ -119,6 +118,9 @@ export function serveStatic(
                 return response;
             }
         } catch (error) {
+            if (error?.name == "NotFound") {
+                return json({error: "Resource not found"}, {status: Status.NotFound});
+            }
             return json({error: error}, {status: Status.InternalServerError});
         }
     };
