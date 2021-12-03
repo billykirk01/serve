@@ -25,7 +25,8 @@ serve(8000, {
   // a single file
   "/": serveStatic("./public/index.html"),
 
-  // a directory of files (must include :filename? at end of path)
+  // a directory of files (browsing to /public will present a directory listing page)
+  // note: must include :filename? at end of the path as below
   "/public/:filename?": serveStatic("./public"),
 
   // or a remote resource

@@ -39,7 +39,7 @@ type Handler = (
  *     // a single file
  *     "/": serveStatic("./public/index.html"),
  * 
- *     // a directory of files
+ *     // a directory of files (browsing to /public will present a directory listing)
  *     "/public/:filename?": serveStatic("./public"),
  * 
  *     // or a remote resource
