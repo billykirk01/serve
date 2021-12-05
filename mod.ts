@@ -1,5 +1,6 @@
 import {
   serve as _serve,
+  serveTls as _serveTls,
   Status,
   STATUS_TEXT,
 } from "https://deno.land/std/http/mod.ts";
@@ -45,6 +46,16 @@ type Handler = (
 export function serve(port: number, routes: Routes): void {
   console.log(`Server is starting at localhost:${port}`);
   _serve(handleRequests(routes), { addr: `:${port}` });
+}
+
+export function serveTLS(
+  port: number,
+  routes: Routes,
+  certFile: string,
+  keyFile: string,
+): void {
+  console.log(`Server is starting at localhost:${port}`);
+  _serveTls(handleRequests(routes), { addr: `:${port}`, certFile, keyFile });
 }
 
 function handleRequests(routes: Routes) {

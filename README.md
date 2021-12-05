@@ -33,3 +33,16 @@ serve(8000, {
   "/todos/:id": serveRemote("https://jsonplaceholder.typicode.com/todos/:id"),
 });
 ```
+
+Also supports TLS
+
+```typescript
+serveTLS(
+  8080,
+  {
+    "/hello": () => new Response("Hello World!"),
+  },
+  "/path/to/cert/localhost.crt",
+  "/path/to/key/localhost.key",
+);
+```
