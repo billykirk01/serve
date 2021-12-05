@@ -9,7 +9,13 @@ This project takes much inspiration from the
 ## 📦 Importing
 
 ```typescript
-import { json, serve, serveStatic } from "https://deno.land/x/verse/mod.ts";
+import {
+  json,
+  serve,
+  serveRemote,
+  serveStatic,
+  serveTLS,
+} from "https://deno.land/x/verse/mod.ts";
 ```
 
 ## 📖 Example Usage
@@ -34,7 +40,7 @@ serve(8000, {
 });
 ```
 
-Also supports TLS
+Or over TLS
 
 ```typescript
 serveTLS(
