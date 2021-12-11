@@ -5,11 +5,11 @@ import {
   STATUS_TEXT,
 } from "https://deno.land/std/http/mod.ts";
 import * as _path from "https://deno.land/std/path/mod.ts";
-import {walk} from "https://deno.land/std/fs/mod.ts";
+import { walk } from "https://deno.land/std/fs/mod.ts";
 import handlebars from "https://cdn.skypack.dev/handlebars";
-import {lookup} from "https://deno.land/x/media_types/mod.ts";
-import {prettyBytes} from "https://deno.land/x/pretty_bytes/mod.ts";
-import {markdownToHTML} from "https://deno.land/x/md2html/mod.ts";
+import { lookup } from "https://deno.land/x/media_types/mod.ts";
+import { prettyBytes } from "https://deno.land/x/pretty_bytes/mod.ts";
+import { markdownToHTML } from "https://deno.land/x/md2html/mod.ts";
 
 type PathParams = Record<string, string> | undefined;
 
@@ -35,7 +35,7 @@ type Handler = (
  *
  *     // a single file
  *     "/": serveStatic("./public/index.html"),
- * 
+ *
  *     // a markdown file rendered in github flavored html
  *     "/markdown": serveMarkdown(".public/README.md")
  *
@@ -48,23 +48,23 @@ type Handler = (
  * ```
  */
 export function serve(port: number, routes: Routes): void {
-  console.log(`Server is starting at localhost:${ port }`);
-  _serve(handleRequests(routes), {addr: `:${ port }`});
+  console.log(`Server is starting at localhost:${port}`);
+  _serve(handleRequests(routes), { addr: `:${port}` });
 }
 
 export function serveTLS(
   port: number,
-  routes: Routes,
   certFile: string,
   keyFile: string,
+  routes: Routes,
 ): void {
-  console.log(`Server is starting at localhost:${ port }`);
-  _serveTls(handleRequests(routes), {addr: `:${ port }`, certFile, keyFile});
+  console.log(`Server is starting at localhost:${port}`);
+  _serveTls(handleRequests(routes), { addr: `:${port}`, certFile, keyFile });
 }
 
 function handleRequests(routes: Routes) {
   return async (request: Request) => {
-    const {pathname} = new URL(request.url);
+    const { pathname } = new URL(request.url);
     // if (pathname.endsWith("/")) pathname = pathname.slice(0, -1);
 
     let response: Response | undefined;
@@ -72,26 +72,27 @@ function handleRequests(routes: Routes) {
     try {
       const startTime = Date.now();
       for (const route of Object.keys(routes)) {
-        const pattern = new URLPattern({pathname: route});
-        if (pattern.test({pathname})) {
-          const params = pattern.exec({pathname})?.pathname.groups;
+        const pattern = new URLPattern({ pathname: route });
+        if (pattern.test({ pathname })) {
+          const params = pattern.exec({ pathname })?.pathname.groups;
           response = await routes[route](request, params);
           break;
         }
       }
 
       console.log(
-        `${ request.method } ${ pathname } ${ Date.now() - startTime }ms ${ response?.status || Status.InternalServerError
+        `${request.method} ${pathname} ${Date.now() - startTime}ms ${
+          response?.status || Status.InternalServerError
         }`,
       );
 
       return response ||
-        json({error: STATUS_TEXT.get(Status.NotFound)}, {
+        json({ error: STATUS_TEXT.get(Status.NotFound) }, {
           status: Status.NotFound,
         });
     } catch (error) {
       console.error("Error serving request:", error);
-      return json({error: STATUS_TEXT.get(Status.InternalServerError)}, {
+      return json({ error: STATUS_TEXT.get(Status.InternalServerError) }, {
         status: Status.InternalServerError,
       });
     }
@@ -136,11 +137,11 @@ export function serveStatic(
       }
     } catch (error) {
       if (error?.name == "NotFound") {
-        return json({error: STATUS_TEXT.get(Status.NotFound)}, {
+        return json({ error: STATUS_TEXT.get(Status.NotFound) }, {
           status: Status.NotFound,
         });
       }
-      return json({error: STATUS_TEXT.get(Status.InternalServerError)}, {
+      return json({ error: STATUS_TEXT.get(Status.InternalServerError) }, {
         status: Status.InternalServerError,
       });
     }
@@ -157,14 +158,14 @@ interface DirectoryEntry {
 async function serveDir(request: Request, path: string) {
   const directoryData: DirectoryEntry[] = [];
 
-  for await (const entry of walk(path, {includeDirs: false})) {
+  for await (const entry of walk(path, { includeDirs: false })) {
     const fileInfo = await Deno.stat(entry.path);
-    const {size, mtime} = fileInfo;
+    const { size, mtime } = fileInfo;
     directoryData.push({
       path: new URL(entry.path, request.url),
       name: entry.name,
       size: prettyBytes(size),
-      dateModified: `${ mtime }`,
+      dateModified: `${mtime}`,
     });
   }
 
@@ -198,7 +199,7 @@ export function serveRemote(
     request: Request,
     _params: PathParams,
   ): Promise<Response> => {
-    const {pathname} = new URL(request.url);
+    const { pathname } = new URL(request.url);
     const url = new URL(pathname, remoteURL);
     return fetch(url);
   };

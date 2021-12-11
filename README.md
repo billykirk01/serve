@@ -48,10 +48,10 @@ Or over TLS
 ```typescript
 serveTLS(
   8080,
+  "/path/to/cert/localhost.crt",
+  "/path/to/key/localhost.key",
   {
     "/hello": () => new Response("Hello World!"),
   },
-  "/path/to/cert/localhost.crt",
-  "/path/to/key/localhost.key",
 );
 ```
