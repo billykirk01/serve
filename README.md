@@ -31,6 +31,9 @@ serve(8000, {
   // a single file
   "/": serveStatic("./public/index.html"),
 
+  // a markdown file rendered in github flavored html
+  "/markdown": serveMarkdown(".public/README.md")
+
   // a directory of files (browsing to /public will present a directory listing page)
   // note: must include :filename? at end of the path as below
   "/public/:filename?": serveStatic("./public"),
