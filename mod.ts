@@ -61,7 +61,7 @@ export function serveTLS(
 function handleRequests(routes: Routes) {
   return async (request: Request) => {
     let { pathname } = new URL(request.url);
-    if (pathname.endsWith("/")) pathname = pathname.slice(0, -1);
+//     if (pathname.endsWith("/")) pathname = pathname.slice(0, -1);
 
     let response: Response | undefined;
 
