@@ -10,114 +10,32 @@ import handlebars from "https://cdn.skypack.dev/handlebars";
 import { lookup } from "https://deno.land/x/media_types/mod.ts";
 import { prettyBytes } from "https://deno.land/x/pretty_bytes/mod.ts";
 import { markdownToHTML } from "https://deno.land/x/md2html/mod.ts";
+import { MatchHandler } from "https://crux.land/router@0.0.5";
 
 type PathParams = Record<string, string> | undefined;
 
-interface Routes {
-  [path: string]: Handler;
-}
-
-type Handler = (
-  request: Request,
-  params: PathParams,
-) => Response | Promise<Response>;
-
-/** Invokes the provided route handler for the route with the request as first argument and processed path params as the second.
- *
- * @example
- * ```ts
- * serve(8000, {
- *     // you can serve plain text
- *     "/hello": () => new Response("Hello World!"),
- *
- *     // json
- *     "/json": () => json({message: "hello world"}),
- *
- *     // a single file
- *     "/": serveStatic("./public/index.html"),
- *
- *     // a markdown file rendered in github flavored html
- *     "/markdown": serveMarkdown(".public/README.md")
- *
- *     // a directory of files (browsing to /public will present a directory listing)
- *     "/public/:filename?": serveStatic("./public"),
- *
- *     // or a remote resource
- *     "/todos/:id": serveRemote("https://jsonplaceholder.typicode.com/todos/:id"),
- * });
- * ```
- */
-export function serve(port: number, routes: Routes): void {
-  console.log(`Server is starting at localhost:${port}`);
-  _serve(handleRequests(routes), { addr: `:${port}` });
-}
-
-export function serveTLS(
-  port: number,
-  certFile: string,
-  keyFile: string,
-  routes: Routes,
-): void {
-  console.log(`Server is starting at localhost:${port}`);
-  _serveTls(handleRequests(routes), { addr: `:${port}`, certFile, keyFile });
-}
-
-function handleRequests(routes: Routes) {
-  return async (request: Request) => {
-    const { pathname } = new URL(request.url);
-    // if (pathname.endsWith("/")) pathname = pathname.slice(0, -1);
-
-    let response: Response | undefined;
-
-    try {
-      const startTime = Date.now();
-      for (const route of Object.keys(routes)) {
-        const pattern = new URLPattern({ pathname: route });
-        if (pattern.test({ pathname })) {
-          const params = pattern.exec({ pathname })?.pathname.groups;
-          response = await routes[route](request, params);
-          break;
-        }
-      }
-
-      console.log(
-        `${request.method} ${pathname} ${Date.now() - startTime}ms ${
-          response?.status || Status.InternalServerError
-        }`,
-      );
-
-      return response ||
-        json({ error: STATUS_TEXT.get(Status.NotFound) }, {
-          status: Status.NotFound,
-        });
-    } catch (error) {
-      console.error("Error serving request:", error);
-      return json({ error: STATUS_TEXT.get(Status.InternalServerError) }, {
-        status: Status.InternalServerError,
-      });
-    }
-  };
-}
+// type Handler = (
+//   request: Request,
+//   params: PathParams,
+// ) => Response | Promise<Response>;
 
 /** Serve static files or a directory.
  *
  * @example
  * ```
- * serve(8000, {
- *     // a single file
- *     "/": serveStatic("./public/index.html"),
+ * // a single file
+ * "/": serveStatic("./public/index.html"),
  *
- *     // a directory of files
- *     "/public/:filename?": serveStatic("./public"),
- * });
+ * // a directory of files
+ * "/public/:filename?": serveStatic("./public"),
  * ```
  */
 export function serveStatic(
   path: string,
-): Handler {
+): MatchHandler {
   return async (
     request: Request,
-    params: PathParams,
+    params: Record<string, string> | undefined,
   ): Promise<Response> => {
     try {
       const fullPath = (params && params.filename)
@@ -187,17 +105,15 @@ async function serveDir(request: Request, path: string) {
  *
  * @example
  * ```
- * serve(8000, {
- *   "/todos/:id": serveRemote("https://jsonplaceholder.typicode.com/todos/:id"),
- * });
+ * "/todos/:id": serveRemote("https://jsonplaceholder.typicode.com/todos/:id"),
  * ```
  */
 export function serveRemote(
   remoteURL: string,
-): Handler {
+): MatchHandler {
   return (
     request: Request,
-    _params: PathParams,
+    _params: Record<string, string> | undefined,
   ): Promise<Response> => {
     const { pathname } = new URL(request.url);
     const url = new URL(pathname, remoteURL);
@@ -216,10 +132,10 @@ export function serveRemote(
  */
 export function serveMarkdown(
   resource: string | URL,
-): Handler {
+): MatchHandler {
   return async (
     _request: Request,
-    _params: PathParams,
+    _params: Record<string, string> | undefined,
   ): Promise<Response> => {
     const response = new Response(await markdownToHTML(resource));
     response.headers.set("content-type", "text/html; charset=utf-8");
@@ -236,7 +152,19 @@ export function serveMarkdown(
  * })
  * ```
  */
-export function json(
+export function serveJson(
+  jsonObj: Parameters<typeof JSON.stringify>[0],
+  init?: ResponseInit,
+): MatchHandler {
+  return (
+    _request: Request,
+    _params: Record<string, string> | undefined,
+  ): Response => {
+    return json(jsonObj, init);
+  };
+}
+
+function json(
   jsobj: Parameters<typeof JSON.stringify>[0],
   init?: ResponseInit,
 ): Response {

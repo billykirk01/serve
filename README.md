@@ -10,48 +10,44 @@ This project takes much inspiration from the
 
 ```typescript
 import {
-  json,
-  serve,
+  serveJson,
+  serveMarkdown,
   serveRemote,
   serveStatic,
-  serveTLS,
 } from "https://deno.land/x/verse/mod.ts";
 ```
 
 ## 📖 Example Usage
 
+This package can be nicley paired with something like
+[Router](https://crux.land/router@0.0.5) by
+[Denosaurs](https://github.com/denosaurs)
+
 ```typescript
-serve(8000, {
-  // you can serve plain text
-  "/hello": () => new Response("Hello World!"),
+import { serve } from "https://deno.land/std@0.114.0/http/server.ts";
+import { router } from "https://crux.land/router@0.0.5";
+import { serveJson, serveMarkdown, serveRemote, serveStatic } from "./mod.ts";
 
-  // json
-  "/json": () => json({ message: "hello world" }),
-
+const handler = router({
   // a single file
   "/": serveStatic("./public/index.html"),
-
-  // a markdown file rendered in github flavored html
-  "/markdown": serveMarkdown(".public/README.md")
 
   // a directory of files (browsing to /public will present a directory listing page)
   // note: must include :filename? at end of the path as below
   "/public/:filename?": serveStatic("./public"),
 
-  // or a remote resource
+  // json
+  "/json": serveJson({ "Hello": "world" }),
+
+  // a remote resource
   "/todos/:id": serveRemote("https://jsonplaceholder.typicode.com/todos/:id"),
+
+  // a markdown file rendered in Github flavored html
+  "/markdown": serveMarkdown(
+    "https://raw.githubusercontent.com/billykirk01/verse/master/README.md",
+  ),
 });
-```
 
-Or over TLS
-
-```typescript
-serveTLS(
-  8080,
-  "/path/to/cert/localhost.crt",
-  "/path/to/key/localhost.key",
-  {
-    "/hello": () => new Response("Hello World!"),
-  },
-);
+console.log("Listening on http://localhost:8000");
+await serve(handler);
 ```
